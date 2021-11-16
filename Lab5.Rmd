@@ -1,0 +1,52 @@
+---
+title: "Lab5"
+author: "Kyle Quagliano"
+date: "11/15/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(maps)
+library(mapproj)
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+str(acc)
+str(per)
+perfatal <- per %>% filter(INJ_SEV == 4)
+str(perfatal)
+drop_na(perfatal, "STATE", "MAKE")
+state <- aggregate(perfatal$MAKE, by=list(perfatal$STATE,perfatal$MAKE), FUN=length)
+state <- state %>% rename(c("Group.1" = "STATE"))
+str(state)
+zipcodes <- readxl::read_xlsx('zipcodes.xlsx')
+zipcodes <- zipcodes %>% rename(c("State Code" = "STATE", "Group.2" = "MAKE"))
+zipcodes <- zipcodes %>% mutate(STATE = as.numeric(STATE))
+str(zipcodes)
+finalState <- full_join(state, zipcodes, by="STATE")
+states <- map_data("state")
+states <- states %>% rename(c("region" = "State Name"))
+finalState <- full_join(finalState, states, by="State Name")
+head(finalState)
+finalState %>% ggplot(aes(x = long, y = lat, fill=x)) + 
+  geom_polygon(aes(group=group)) + 
+  coord_map()
+personsacc <- full_join(acc, per, by=c("STATE", "COUNTY", "DAY", "MONTH","HOUR"))
+personsacc$Acc = ncol(personsacc)
+str(personsacc)
+accDOW <- aggregate(personsacc$Acc, by=list(personsacc$SEX, personsacc$MONTH, personsacc$DAY), FUN=length)
+str(accDOW)
+accDOW %>% ggplot(aes(x=Group.3,y=x)) + geom_bar(stat="identity")
+accDOW %>% ggplot(aes(x=Group.2, y=x)) + geom_bar(stat="identity")
+accDOW %>% ggplot(aes(x=Group.1, y=x)) + geom_bar(stat="identity")
+"As seen in the three bar charts created most accidents happen with in the evening or specifically afternoon and more than 2/3rds of the accidents are with Males in them."
+finalState %>% ggplot(aes(x = long, y = lat, fill=`County Code`)) + 
+  geom_polygon(aes(group=group)) + 
+  coord_map()
+```
+
+
+
+
